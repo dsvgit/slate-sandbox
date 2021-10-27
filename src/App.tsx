@@ -86,7 +86,6 @@ const components = createPlateComponents({
 
 const Editor = () => {
   const [debugValue, setDebugValue] = useSlateDebugValue(initialValue);
-  console.log(debugValue)
   const { props: toolbarProps } = useToolbarPlugin();
 
   return (
