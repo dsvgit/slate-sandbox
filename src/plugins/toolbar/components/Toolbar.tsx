@@ -1,11 +1,14 @@
-import {useEffect, useState} from "react";
-import { useEditorRef } from "@udecode/plate";
+import { useEffect, useState } from "react";
+import { Editor, Node } from "slate";
+import { useEditorRef, useEditorState } from "@udecode/plate";
 
 import { ToolbarProps } from "plugins/toolbar/types";
-import { upsertLink } from "plugins/link/transforms/upsertLink";
+import { applyLinkToSelection } from "plugins/link/transforms";
+
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const LinkToolbar = () => {
-  const editor = useEditorRef();
+  const editor = useEditorState();
   const [url, setUrl] = useState("https://google.com");
 
   useEffect(() => {
@@ -19,8 +22,7 @@ const LinkToolbar = () => {
       <button
         onMouseDown={(e) => {
           e.preventDefault();
-          console.log(editor)
-          upsertLink(editor, { url, wrap: true });
+          applyLinkToSelection(editor, url);
         }}
       >
         apply
@@ -29,10 +31,58 @@ const LinkToolbar = () => {
   );
 };
 
+const Test = () => {
+  const editor = useEditorRef();
+
+  return (
+    <div>
+      <button
+        onMouseDown={(e) => {
+          e.preventDefault();
+          if (editor.selection) {
+            const fragment = Editor.fragment(editor, editor.selection);
+            console.log(fragment);
+          }
+        }}
+      >
+        fragment
+      </button>
+      <button
+        onMouseDown={(e) => {
+          e.preventDefault();
+          if (editor.selection) {
+            const fragment = Editor.fragment(editor, editor.selection);
+
+            const hasInlines = fragment.some((node) =>
+              Array.from(Node.descendants(node)).some(([node]) =>
+                Editor.isInline(editor, node)
+              )
+            );
+
+            console.log(fragment, hasInlines);
+          }
+        }}
+      >
+        fragment nodes
+      </button>
+      <button
+        onMouseDown={(e) => {
+          e.preventDefault();
+          if (editor.selection) {
+          }
+        }}
+      >
+        editor nodes
+      </button>
+    </div>
+  );
+};
+
 export const Toolbar = (_props: ToolbarProps) => {
   return (
-    <div style={{marginBottom: 20}}>
+    <div style={{ marginBottom: 20 }}>
       <LinkToolbar />
+      <Test />
     </div>
   );
 };

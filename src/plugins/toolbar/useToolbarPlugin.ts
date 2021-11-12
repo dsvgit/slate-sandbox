@@ -3,6 +3,7 @@ import { HookPlugin } from "plugins/types";
 
 const useToolbarPlugin: HookPlugin<ToolbarProps> = () => {
   return {
+    plugin: {},
     props: {
       name: "test",
     },

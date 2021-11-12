@@ -1,17 +1,18 @@
-import { SPEditor, TElement, WithOverride } from "@udecode/plate-core";
-import { ReactEditor } from "slate-react";
-import { insertNodes } from "@udecode/plate-common";
+import { Editor, Range } from "slate";
+import { withRemoveEmptyNodes } from "@udecode/plate";
 
-import { ELEMENT_LINK } from "plugins/link/defaults";
+import { insertLink, applyLinkToTextBefore } from "plugins/link/transforms";
+import { ELEMENT_LINK } from "plugins/link/types";
 
-const urlRegex = /((?:(?:https?:\/\/)|(?:www\.))[^\s]+)/g;
+const triggerRegex = /\s/;
+const splitTextByUrlRegex = /((?:(?:https?:\/\/)|(?:www\.))[^\s]+)/;
 
-export const withLink =
-  (): WithOverride<ReactEditor & SPEditor> => (editor) => {
-    const { insertText } = editor;
+export const withLink = <T extends Editor>(editor: T) => {
+  const { insertText, insertBreak } = editor;
 
-    editor.insertText = (text) => {
-      const parts = text.split(urlRegex);
+  editor.insertText = (text) => {
+    if (text.length > 1) {
+      const parts = text.split(splitTextByUrlRegex);
 
       let idx = 0;
       while (idx < parts.length) {
@@ -21,14 +22,32 @@ export const withLink =
         insertText(text);
 
         if (url) {
-          insertNodes<TElement>(editor, {
-            type: ELEMENT_LINK,
-            url,
-            children: [{ text: url }],
-          });
+          insertLink(editor, url);
         }
       }
-    };
 
-    return editor;
+      return;
+    }
+
+    if (
+      triggerRegex.test(text) &&
+      editor.selection &&
+      Range.isCollapsed(editor.selection)
+    ) {
+      applyLinkToTextBefore(editor);
+    }
+
+    insertText(text);
   };
+
+  editor.insertBreak = () => {
+    applyLinkToTextBefore(editor);
+
+    insertBreak();
+  };
+
+  // empty link still exists in editor (e.g. after backwards removing)
+  editor = withRemoveEmptyNodes({ type: ELEMENT_LINK })(editor);
+
+  return editor;
+};

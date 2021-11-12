@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo } from "react";
 import {
   createBlockquotePlugin,
   createBoldPlugin,
@@ -13,25 +13,57 @@ import {
   createReactPlugin,
   createStrikethroughPlugin,
   createUnderlinePlugin,
+  createDeserializeHTMLPlugin,
   Plate,
   PlatePluginComponent,
-  TNode,
 } from "@udecode/plate";
+import { Node, Editor } from "slate";
+
 import createLinkPlugin from "plugins/link/createLinkPlugin";
 import Link from "plugins/link/components/Link";
-import { ELEMENT_LINK } from "plugins/link/defaults";
 import useToolbarPlugin from "plugins/toolbar/useToolbarPlugin";
-import { Toolbar } from "plugins/toolbar/components/Toolbar";
+import { useSlateDebugValue } from "useSlateDebugValue";
+import { useSlate } from "slate-react";
 
 import "index.css";
-import {useSlateDebugValue} from "useSlateDebugValue";
+import { Toolbar } from "plugins/toolbar/components/Toolbar";
+import useElementMenuPlugin, {
+  ElementContextMenuContextProvider,
+} from "plugins/elementMenu/useElementMenuPlugin";
+import ElementMenu from "plugins/elementMenu/components/ElementMenu";
+import { ELEMENT_LINK } from "plugins/link/types";
+import { createLinkElement } from "plugins/link/utils";
 
-const initialValue: TNode[] = [
+const initialValue: Node[] = [
   {
     type: "p",
     children: [
       {
-        text: "This is editable plain text with react and history plugins, just like a <textarea>!",
+        text: "first paragraph",
+      },
+    ],
+  },
+  {
+    type: "p",
+    children: [
+      {
+        text: "Google: ",
+      },
+      createLinkElement({ url: "https://google.com", text: "google" }),
+      {
+        text: " website",
+      },
+    ],
+  },
+  {
+    type: "p",
+    children: [
+      {
+        text: "Yandex: ",
+      },
+      createLinkElement({ url: "https://yandex.com", text: "yandex" }),
+      {
+        text: " website",
       },
     ],
   },
@@ -41,15 +73,7 @@ const initialValue: TNode[] = [
       {
         text: "Here we have a ",
       },
-      {
-        type: "a",
-        url: "https://google.com",
-        children: [
-          {
-            text: "link",
-          },
-        ],
-      },
+      createLinkElement({ url: "https://yandex.com", text: "link" }),
       {
         text: ". Which is awesome",
       },
@@ -57,53 +81,94 @@ const initialValue: TNode[] = [
   },
 ];
 
-const plugins = [
-  // editor
-  createReactPlugin(), // withReact
-  createHistoryPlugin(), // withHistory
-
-  // elements
-  createParagraphPlugin(), // paragraph element
-  createBlockquotePlugin(), // blockquote element
-  createCodeBlockPlugin(), // code block element
-  createHeadingPlugin(), // heading elements
-
-  // marks
-  createBoldPlugin(), // bold mark
-  createItalicPlugin(), // italic mark
-  createUnderlinePlugin(), // underline mark
-  createStrikethroughPlugin(), // strikethrough mark
-  createCodePlugin(), // code mark
-
-  // custom
-  createLinkPlugin(),
-];
-
 const options = createPlateOptions();
 const components = createPlateComponents({
   [ELEMENT_LINK]: Link as PlatePluginComponent,
 });
 
-const Editor = () => {
+const App = () => (
+  <div>
+    <AppEditor />
+    <h4>test</h4>
+    <div contentEditable={true} />
+  </div>
+);
+
+export default App;
+
+const AppEditor = () => {
   const [debugValue, setDebugValue] = useSlateDebugValue(initialValue);
   const { props: toolbarProps } = useToolbarPlugin();
+  const { plugin: elementMenuPlugin, props: elementMenuProps } =
+    useElementMenuPlugin();
+
+  const plugins = useMemo(() => {
+    const _plugins = [
+      // editor
+      createReactPlugin(), // withReact
+      createHistoryPlugin(), // withHistory
+
+      // elements
+      createParagraphPlugin(), // paragraph element
+      createBlockquotePlugin(), // blockquote element
+      createCodeBlockPlugin(), // code block element
+      createHeadingPlugin(), // heading elements
+
+      // marks
+      createBoldPlugin(), // bold mark
+      createItalicPlugin(), // italic mark
+      createUnderlinePlugin(), // underline mark
+      createStrikethroughPlugin(), // strikethrough mark
+      createCodePlugin(), // code mark
+
+      // custom
+      createLinkPlugin(),
+
+      elementMenuPlugin,
+    ];
+
+    _plugins.push(createDeserializeHTMLPlugin({ plugins: _plugins }));
+
+    return _plugins;
+  }, [elementMenuPlugin]);
 
   return (
-    <Plate
-      initialValue={initialValue}
-      plugins={plugins}
-      options={options}
-      components={components}
-      onChange={(value) => setDebugValue(value)}
-    >
-      {toolbarProps && <Toolbar {...toolbarProps} />}
-      <div>
-        <pre>{debugValue}</pre>
-      </div>
-    </Plate>
+    <ElementContextMenuContextProvider value={elementMenuProps}>
+      <Plate
+        initialValue={initialValue}
+        plugins={plugins}
+        options={options}
+        components={components}
+        onChange={(value) => setDebugValue(value)}
+      >
+        <EditorContent>
+          {({ editor }) => (
+            <div>
+              <Toolbar {...toolbarProps} />
+              <ElementMenu />
+              <div>
+                <pre>
+                  {JSON.stringify(editor.selection, null, 2)}
+                  <br />
+                  {debugValue}
+                </pre>
+              </div>
+            </div>
+          )}
+        </EditorContent>
+      </Plate>
+    </ElementContextMenuContextProvider>
   );
 };
 
-const App = () => <Editor />;
+const EditorContent = ({
+  children,
+}: {
+  children: ({ editor }: { editor: Editor }) => React.ReactNode;
+}) => {
+  const editor = useSlate();
 
-export default App;
+  // console.log(editor.history.undos)
+
+  return <div>{children({ editor })}</div>;
+};
