@@ -47,6 +47,7 @@ export const withLink = <T extends Editor>(editor: T) => {
   };
 
   // empty link still exists in editor (e.g. after backwards removing)
+  // @ts-ignore
   editor = withRemoveEmptyNodes({ type: ELEMENT_LINK })(editor);
 
   return editor;

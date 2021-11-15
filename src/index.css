@@ -39,3 +39,9 @@ pre {
   height: 100vh;
   padding: 8px;
 }
+
+a {
+  color: royalblue;
+  text-decoration: none;
+  cursor: pointer;
+}
