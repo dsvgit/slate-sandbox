@@ -1,0 +1,9 @@
+.rangePopper {
+  position: absolute;
+  z-index: 100;
+  visibility: hidden;
+
+  &.visible {
+    visibility: visible;
+  }
+}

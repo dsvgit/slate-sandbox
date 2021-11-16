@@ -14,6 +14,7 @@ export const getRangeBefore = (
   at = Editor.range(editor, at);
 
   const currentBlockEntry = Editor.above(editor, {
+    mode: "lowest",
     match: (node) => Editor.isBlock(editor, node),
   });
 

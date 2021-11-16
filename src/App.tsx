@@ -33,6 +33,8 @@ import useElementMenuPlugin, {
 import ElementMenu from "plugins/elementMenu/components/ElementMenu";
 import { ELEMENT_LINK } from "plugins/link/types";
 import { createLinkElement } from "plugins/link/utils";
+import useSlashMenuPlugin from "plugins/slashMenu/useSlashMenuPlugin";
+import SlashMenu from "plugins/slashMenu/components/SlashMenu";
 
 const initialValue: Node[] = [
   {
@@ -101,6 +103,8 @@ const AppEditor = () => {
   const { props: toolbarProps } = useToolbarPlugin();
   const { plugin: elementMenuPlugin, props: elementMenuProps } =
     useElementMenuPlugin();
+  const { plugin: slashMenuPlugin, props: slashMenuProps } =
+    useSlashMenuPlugin();
 
   const plugins = useMemo(() => {
     const _plugins = [
@@ -125,12 +129,13 @@ const AppEditor = () => {
       createLinkPlugin(),
 
       elementMenuPlugin,
+      slashMenuPlugin,
     ];
 
     _plugins.push(createDeserializeHTMLPlugin({ plugins: _plugins }));
 
     return _plugins;
-  }, [elementMenuPlugin]);
+  }, [elementMenuPlugin, slashMenuPlugin]);
 
   return (
     <ElementContextMenuContextProvider value={elementMenuProps}>
@@ -141,34 +146,27 @@ const AppEditor = () => {
         components={components}
         onChange={(value) => setDebugValue(value)}
       >
-        <EditorContent>
-          {({ editor }) => (
-            <div>
-              <Toolbar {...toolbarProps} />
-              <ElementMenu />
-              <div>
-                <pre>
-                  {JSON.stringify(editor.selection, null, 2)}
-                  <br />
-                  {debugValue}
-                </pre>
-              </div>
-            </div>
-          )}
-        </EditorContent>
+        <div>
+          <Toolbar {...toolbarProps} />
+          <ElementMenu />
+          <SlashMenu {...slashMenuProps} />
+          <DebugComponent debugValue={debugValue} />
+        </div>
       </Plate>
     </ElementContextMenuContextProvider>
   );
 };
 
-const EditorContent = ({
-  children,
-}: {
-  children: ({ editor }: { editor: Editor }) => React.ReactNode;
-}) => {
+const DebugComponent = ({ debugValue }: { debugValue: any }) => {
   const editor = useSlate();
 
-  // console.log(editor.history.undos)
-
-  return <div>{children({ editor })}</div>;
+  return (
+    <div>
+      <pre>
+        {JSON.stringify(editor.selection, null, 2)}
+        <br />
+        {debugValue}
+      </pre>
+    </div>
+  );
 };
